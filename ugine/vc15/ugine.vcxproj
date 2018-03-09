@@ -132,10 +132,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\glew\glew.c" />
+    <ClCompile Include="..\src\Buffer.cpp" />
     <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\Shader.cpp" />
+    <ClCompile Include="..\src\Vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\lib\glew\glew.h" />
+    <ClInclude Include="..\src\Buffer.h" />
+    <ClInclude Include="..\src\common.h" />
+    <ClInclude Include="..\src\Shader.h" />
+    <ClInclude Include="..\src\Vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
