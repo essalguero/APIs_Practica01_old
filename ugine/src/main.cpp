@@ -1,6 +1,6 @@
-#ifdef _MSC_VER
+/*#ifdef _MSC_VER
 #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
-#endif
+#endif*/
 
 #include "../lib/glew/glew.h"
 #include "../lib/glfw3/glfw3.h"
@@ -10,13 +10,16 @@
 #include <iostream>
 #include <sstream>
 
+
+#include "Shader.h"
+
 #define FULLSCREEN false
 
-std::array<float, 15> vertices = {
+std::array<float, 18> vertices = {
 	// coords	// colors
-	 0,  1,		1, 0, 0,
-	-1, -1,		0, 1, 0,
-	 1, -1,		0, 0, 1
+	 0,  1, 0,		1, 0, 0,
+	-1, -1, 0,  	0, 1, 0,
+	 1, -1, 0,		0, 0, 1
 };
 
 std::string readString(const char* filename) {
@@ -26,8 +29,29 @@ std::string readString(const char* filename) {
 	return ss.str();
 }
 
+
+int init() {
+	
+
+	// init glew
+	if (glewInit()) {
+		std::cout << "could not initialize glew" << std::endl;
+		return -1;
+	}
+
+	// enable gl states
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_SCISSOR_TEST);
+	return 0;
+
+}
+
+
+
 int main(int, char**) {
-	if ( glfwInit() != GLFW_TRUE ) {
+
+
+	if (glfwInit() != GLFW_TRUE) {
 		std::cout << "could not initalize glfw" << std::endl;
 		return -1;
 	}
@@ -42,69 +66,26 @@ int main(int, char**) {
 	}
 	glfwMakeContextCurrent(window);
 
-	// init glew
-	if (glewInit()) {
-		std::cout << "could not initialize glew" << std::endl;
+	if (init())
+		return -1;
+
+
+	Shader shaderProgram = Shader(readString("data/shader.vert"), readString("data/shader.frag"));
+
+	if (shaderProgram.getError() == "")
+	{
+		cout << shaderProgram.getError() << endl;
 		return -1;
 	}
 
-	// read shaders
-	std::string vertexShader = readString("data/shader.vert");
-	std::string fragmentShader = readString("data/shader.frag");
-	if (vertexShader == "" || fragmentShader == "") {
-		std::cout << "could not load shaders" << std::endl;
-		return -1;
-	}
-
-	// create vertex shader
-	int retCode = GL_FALSE;
-	char errorLog[1024];
-	uint32_t vs = glCreateShader(GL_VERTEX_SHADER);
-	const char* vertexShaderC = vertexShader.c_str();
-	glShaderSource(vs, 1, &vertexShaderC, nullptr);
-	glCompileShader(vs);
-	glGetShaderiv(vs, GL_COMPILE_STATUS, &retCode);
-	if (retCode == GL_FALSE) {
-		glGetShaderInfoLog(vs, sizeof(errorLog), nullptr, errorLog);
-		std::cout << errorLog << std::endl;
-		return -1;
-	}
-
-	// create fragment shader
-	uint32_t fs = glCreateShader(GL_FRAGMENT_SHADER);
-	const char* fragmentShaderC = fragmentShader.c_str();
-	glShaderSource(fs, 1, &fragmentShaderC, nullptr);
-	glCompileShader(fs);
-	glGetShaderiv(fs, GL_COMPILE_STATUS, &retCode);
-	if (retCode == GL_FALSE) {
-		glGetShaderInfoLog(fs, sizeof(errorLog), nullptr, errorLog);
-		std::cout << errorLog << std::endl;
-		return -1;
-	}
-
-	// create program
-	uint32_t program = glCreateProgram();
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
-	glLinkProgram(program);
-	glGetProgramiv(program, GL_LINK_STATUS, &retCode);
-	if (retCode == GL_FALSE) {
-		glGetProgramInfoLog(program, sizeof(errorLog), nullptr, errorLog);
-		std::cout << errorLog << std::endl;
-		return -1;
-	}
-
-	// use program
-	glUseProgram(program);
-
-	// enable gl states
-	glEnable(GL_SCISSOR_TEST);
+	shaderProgram.use();
 
 	// setup vertex vars
-	int vposLoc = glGetAttribLocation(program, "vpos");
-	int vcolorLoc = glGetAttribLocation(program, "vcolor");
+	int vposLoc = glGetAttribLocation(shaderProgram.getId(), "vpos");
+	int vcolorLoc = glGetAttribLocation(shaderProgram.getId(), "vcolor");
 	glEnableVertexAttribArray(vposLoc);
 	glEnableVertexAttribArray(vcolorLoc);
+
 
 	// create gl buffer
 	uint32_t buffer = 0;
@@ -115,8 +96,11 @@ int main(int, char**) {
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(vposLoc, 2, GL_FLOAT, false, sizeof(float) * 5, 0);
-	glVertexAttribPointer(vcolorLoc, 3, GL_FLOAT, false, sizeof(float) * 5, reinterpret_cast<void*>(sizeof(float) * 2));
+	glVertexAttribPointer(vposLoc, 3, GL_FLOAT, false, sizeof(float) * 6, 0);
+	glVertexAttribPointer(vcolorLoc, 3, GL_FLOAT, false, sizeof(float) * 6, reinterpret_cast<void*>(sizeof(float) * 3));
+
+
+	//Bucle principal
 
 	float lastTime = static_cast<float>(glfwGetTime());
 	while ( !glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE) ) {
