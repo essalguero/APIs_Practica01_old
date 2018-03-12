@@ -10,8 +10,11 @@
 #include <iostream>
 #include <sstream>
 
+#include <vector>
 
 #include "Shader.h"
+#include "Vertex.h"
+#include "Buffer.h"
 
 #define FULLSCREEN false
 
@@ -70,9 +73,9 @@ int main(int, char**) {
 		return -1;
 
 
-	Shader shaderProgram = Shader(readString("data/shader.vert"), readString("data/shader.frag"));
+	Shader shaderProgram(readString("data/shader.vert"), readString("data/shader.frag"));
 
-	if (shaderProgram.getError() == "")
+	if (strcmp(shaderProgram.getError(), "") != 0)
 	{
 		cout << shaderProgram.getError() << endl;
 		return -1;
@@ -81,13 +84,13 @@ int main(int, char**) {
 	shaderProgram.use();
 
 	// setup vertex vars
-	int vposLoc = glGetAttribLocation(shaderProgram.getId(), "vpos");
+	/*int vposLoc = glGetAttribLocation(shaderProgram.getId(), "vpos");
 	int vcolorLoc = glGetAttribLocation(shaderProgram.getId(), "vcolor");
 	glEnableVertexAttribArray(vposLoc);
-	glEnableVertexAttribArray(vcolorLoc);
+	glEnableVertexAttribArray(vcolorLoc);*/
 
 
-	// create gl buffer
+	/*// create gl buffer
 	uint32_t buffer = 0;
 	glGenBuffers(1, &buffer);
 	if ( buffer == 0 ) {
@@ -97,10 +100,34 @@ int main(int, char**) {
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(vposLoc, 3, GL_FLOAT, false, sizeof(float) * 6, 0);
-	glVertexAttribPointer(vcolorLoc, 3, GL_FLOAT, false, sizeof(float) * 6, reinterpret_cast<void*>(sizeof(float) * 3));
+	glVertexAttribPointer(vcolorLoc, 3, GL_FLOAT, false, sizeof(float) * 6, reinterpret_cast<void*>(sizeof(float) * 3));*/
 
+
+	// Crear el Buffer que contiene los datos de un triángulo
+	vector<Vertex> vertices;
+	vector<uint16_t> indices;
+
+
+	Vertex v1{ glm::vec3(0.0f, 1.0f, 0.0f) };
+	Vertex v2{ glm::vec3(-1.0f, -1.0f, 0.0f) };
+	Vertex v3{ glm::vec3(1.0f, -1.0f, 0.0f) };
+
+	vertices.push_back(v1);
+	vertices.push_back(v2);
+	vertices.push_back(v3);
+
+	indices.push_back(0);
+	indices.push_back(1);
+	indices.push_back(2);
+
+
+	Buffer bufferDatos(vertices, indices);
 
 	//Bucle principal
+
+	float anguloRotacionRads = 0.0f;
+
+	
 
 	float lastTime = static_cast<float>(glfwGetTime());
 	while ( !glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE) ) {
@@ -125,7 +152,59 @@ int main(int, char**) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// draw triangle
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+
+
+		anguloRotacionRads += (glm::radians(32.0f) * deltaTime);
+
+		glm::mat4 mvpMatrix;
+		int matrixLocation = shaderProgram.getLocation("mvpMatrix");
+		
+		//mvpMatrix[3][3] = 6;
+
+		//glm::mat4 matP = glm::perspective(glm::half_pi<float>(), screenWidth / (float)screenHeight, 0.1f, 100.0f);
+		//glm::mat4 matV = glm::lookAt(glm::vec3(0.0f, 0.0f, 6.0f), glm::vec3(), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		//glm::mat4 matVP = matP*matV;
+
+
+		// Crear matriz de proyeccion
+		glm::mat4 projectionMatrix = glm::perspective(45.0f, 
+			static_cast<float>(screenWidth) / static_cast<float>(screenHeight), 0.1f, 100.0f);
+
+		// Crear matriz de vista
+		glm::mat4 viewMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 6.0f), 
+			glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		// Matriz Vista Proyeccion
+		glm::mat4 viewProjectionMatrix = projectionMatrix * viewMatrix;
+
+		for (int x = -3; x <= 3; x += 3) {
+			for (int z = 0; z >= -6; z -= 3) {
+
+				// Matriz de traslacion
+				glm::mat4 translationMatrix = glm::translate(glm::mat4(), glm::vec3(static_cast<float>(x), 0.0f, static_cast<float>(z)));
+
+				// Matriz de Rotacion
+				glm::mat4 rotationMatrix = glm::rotate(glm::mat4(), anguloRotacionRads, glm::vec3(0.0f, 1.0f, 0.0f));
+
+				mvpMatrix = translationMatrix * rotationMatrix;
+				mvpMatrix = viewProjectionMatrix * mvpMatrix;
+
+
+
+				//mvpMatrix = matVP * mvpMatrix;
+
+				shaderProgram.setMatrix(matrixLocation, mvpMatrix);
+
+
+
+
+
+				bufferDatos.draw(shaderProgram);
+			}
+		}
+
 
 		// update swap chain & process events
 		glfwSwapBuffers(window);
@@ -133,7 +212,7 @@ int main(int, char**) {
 	}
 
 	// delete vertex buffer
-	glDeleteBuffers(1, &buffer);
+	//glDeleteBuffers(1, &buffer);
 	
 	return 0;
 }

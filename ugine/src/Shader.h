@@ -43,11 +43,13 @@ public:
 
 private:
 
-	GLuint id{ static_cast<GLuint>(-1) };
+	GLuint id{ 0 };
 
-	char * error;
+	char error[1024];
 
 	int vposLoc;
 	int vcolorLoc;
+
+	int mvpMatrix;
 };
 

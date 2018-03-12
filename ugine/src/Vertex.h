@@ -1,19 +1,10 @@
 #pragma once
 
-#include "../lib/glm/vec3.hpp"
+#include "common.h"
 
 
-class Vertex
+typedef struct
 {
-public:
-	inline Vertex() : position(0, 0, 0) {};
-
-	Vertex(glm::vec3 pos) : position(pos) {};
-
-	//~Vertex();
-
-
 	glm::vec3 position;
-
-};
+} Vertex;
 
